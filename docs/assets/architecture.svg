@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">Incident Guard architecture</title>
+  <desc id="desc">Alert and operator input enter an event-driven agent runtime, which uses context, provider, policy-controlled tools, an event store, Docker lab, and evaluation reports.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1020"/><stop offset="1" stop-color="#162942"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="9" flood-opacity=".3"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#62e6a7"/></marker>
+    <style>.box{fill:#131b2f;stroke:#344564;stroke-width:2;rx:14;filter:url(#shadow)}.core{fill:#173248;stroke:#62e6a7}.t{fill:#e8edf8;font:600 17px system-ui;text-anchor:middle}.s{fill:#9cabc5;font:13px system-ui;text-anchor:middle}.a{fill:none;stroke:#62e6a7;stroke-width:2.5;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="520" rx="24" fill="url(#bg)"/>
+  <text x="60" y="58" fill="#e8edf8" font-family="system-ui" font-size="28" font-weight="700">Incident Guard</text>
+  <text x="60" y="84" fill="#96a3bd" font-family="system-ui" font-size="14">Auditable incident investigation and recovery runtime</text>
+  <g>
+    <rect class="box" x="55" y="180" width="190" height="100"/><text class="t" x="150" y="222">Alert / Operator</text><text class="s" x="150" y="248">CLI · Webhook · Steering</text>
+    <rect class="box core" x="325" y="145" width="290" height="170"/><text class="t" x="470" y="190">Event-driven Agent Runtime</text><text class="s" x="470" y="218">Run · Turn · Step lifecycle</text><text class="s" x="470" y="242">ReAct loop · Goal Gate · Budgets</text><text class="s" x="470" y="266">cancel · resume · fault recovery</text>
+    <rect class="box" x="700" y="110" width="205" height="90"/><text class="t" x="802" y="148">LLM Provider</text><text class="s" x="802" y="174">DeepSeek / compatible API</text>
+    <rect class="box" x="700" y="250" width="205" height="110"/><text class="t" x="802" y="286">Tool Pipeline</text><text class="s" x="802" y="312">Schema · Policy · Approval</text><text class="s" x="802" y="334">Concurrency · Named Lane</text>
+    <rect class="box" x="980" y="250" width="165" height="110"/><text class="t" x="1062" y="286">Docker Lab</text><text class="s" x="1062" y="312">MCP tools</text><text class="s" x="1062" y="334">3 fault scenarios</text>
+    <rect class="box" x="325" y="390" width="235" height="85"/><text class="t" x="442" y="425">SQLite Event Store</text><text class="s" x="442" y="451">append-only · replay</text>
+    <rect class="box" x="650" y="400" width="205" height="75"/><text class="t" x="752" y="431">Web Console</text><text class="s" x="752" y="454">Timeline · SSE · Approval</text>
+    <rect class="box" x="930" y="400" width="215" height="75"/><text class="t" x="1037" y="431">Evaluation</text><text class="s" x="1037" y="454">Oracle · invariants · reports</text>
+    <path class="a" d="M245 230 H315"/><path class="a" d="M615 190 C650 190 660 155 690 155"/><path class="a" d="M615 260 C655 260 660 305 690 305"/><path class="a" d="M905 305 H970"/><path class="a" d="M470 315 V380"/><path class="a" d="M560 432 H640"/><path class="a" d="M855 437 H920"/>
+  </g>
+</svg>

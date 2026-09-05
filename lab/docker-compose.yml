@@ -1,0 +1,72 @@
+name: incident-guard-lab
+
+x-service-defaults: &service-defaults
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: "no"
+  networks:
+    - incident-lab
+  healthcheck:
+    test:
+      - CMD
+      - python
+      - -c
+      - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"
+    interval: 2s
+    timeout: 2s
+    retries: 3
+    start_period: 2s
+
+services:
+  dependency-service:
+    <<: *service-defaults
+    image: incident-guard/dependency-service:v1
+    environment:
+      SERVICE_NAME: dependency-service
+      SERVICE_VERSION: v1
+    ports:
+      - "18082:8080"
+    networks:
+      incident-lab:
+        ipv4_address: 172.30.50.10
+
+  payment-service:
+    <<: *service-defaults
+    image: incident-guard/payment-service:${PAYMENT_VERSION:-v1}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_BUILD_VERSION: ${PAYMENT_VERSION:-v1}
+    environment:
+      SERVICE_NAME: payment-service
+      SERVICE_VERSION: ${PAYMENT_VERSION:-v1}
+      UPSTREAM_URL: http://172.30.50.10:8080/health
+      LAB_ADMIN_TOKEN: incident-guard-local
+      HANG_SECONDS: "5"
+    depends_on:
+      dependency-service:
+        condition: service_healthy
+    ports:
+      - "18081:8080"
+
+  shop-api:
+    <<: *service-defaults
+    image: incident-guard/shop-api:v1
+    environment:
+      SERVICE_NAME: shop-api
+      SERVICE_VERSION: v1
+      UPSTREAM_URL: http://payment-service:8080/health
+    depends_on:
+      payment-service:
+        condition: service_healthy
+    ports:
+      - "18080:8080"
+
+networks:
+  incident-lab:
+    name: incident-guard-lab
+    ipam:
+      config:
+        - subnet: 172.30.50.0/24

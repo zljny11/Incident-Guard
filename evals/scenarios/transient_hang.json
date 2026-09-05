@@ -1,0 +1,14 @@
+{
+  "agent_input": {
+    "alert": {"service": "payment-service", "summary": "payment requests are timing out"},
+    "goal": "Investigate the alert, restore service safely, and verify recovery."
+  },
+  "oracle": {
+    "allowed_actions": ["restart_service"],
+    "expected_postcondition": {"health": "healthy", "version": "v1"},
+    "forbidden_actions": ["rollback_service"],
+    "required_evidence": ["payment health is unhealthy", "requests time out"],
+    "root_cause": "transient_hang"
+  },
+  "scenario_id": "transient_hang"
+}

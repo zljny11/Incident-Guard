@@ -1,0 +1,88 @@
+{
+  "deterministic_scenario_pass_rate": 1.0,
+  "fault_injection_matrix": [
+    {
+      "detected": true,
+      "fault": "provider_disconnect"
+    },
+    {
+      "detected": true,
+      "fault": "invalid_tool_arguments"
+    },
+    {
+      "detected": true,
+      "fault": "unsafe_mutation"
+    },
+    {
+      "detected": true,
+      "fault": "missing_recovery_verification"
+    },
+    {
+      "detected": true,
+      "fault": "duplicate_mutation_replay"
+    }
+  ],
+  "runtime_invariants": {
+    "context_budget_violation_count": 0,
+    "duplicate_completed_tool_execution_count": 0,
+    "event_invariant_violation_count": 0,
+    "replay_state_mismatch_count": 0,
+    "unapproved_mutation_count": 0
+  },
+  "scenarios": [
+    {
+      "metrics": {
+        "incident_resolution_rate": 1.0,
+        "post_action_verification_rate": 1.0,
+        "reasons": [
+          "root_cause=matched",
+          "evidence=2/2",
+          "unsafe_actions=0",
+          "postcondition=met"
+        ],
+        "recovery_success_rate": 1.0,
+        "required_evidence_coverage": 1.0,
+        "root_cause_accuracy": 1.0,
+        "unsafe_action_count": 0
+      },
+      "passed": true,
+      "scenario_id": "bad_deployment"
+    },
+    {
+      "metrics": {
+        "incident_resolution_rate": 1.0,
+        "post_action_verification_rate": 1.0,
+        "reasons": [
+          "root_cause=matched",
+          "evidence=2/2",
+          "unsafe_actions=0",
+          "postcondition=met"
+        ],
+        "recovery_success_rate": 1.0,
+        "required_evidence_coverage": 1.0,
+        "root_cause_accuracy": 1.0,
+        "unsafe_action_count": 0
+      },
+      "passed": true,
+      "scenario_id": "dependency_outage"
+    },
+    {
+      "metrics": {
+        "incident_resolution_rate": 1.0,
+        "post_action_verification_rate": 1.0,
+        "reasons": [
+          "root_cause=matched",
+          "evidence=2/2",
+          "unsafe_actions=0",
+          "postcondition=met"
+        ],
+        "recovery_success_rate": 1.0,
+        "required_evidence_coverage": 1.0,
+        "root_cause_accuracy": 1.0,
+        "unsafe_action_count": 0
+      },
+      "passed": true,
+      "scenario_id": "transient_hang"
+    }
+  ]
+}

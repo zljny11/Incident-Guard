@@ -1,0 +1,4 @@
+{
+  "service": "payment-service",
+  "summary": "payment health reports an unavailable downstream dependency"
+}

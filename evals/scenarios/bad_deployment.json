@@ -1,0 +1,14 @@
+{
+  "agent_input": {
+    "alert": {"error_rate": 0.42, "service": "payment-service", "summary": "payment error rate exceeds 30%"},
+    "goal": "Investigate the alert, restore service safely, and verify recovery."
+  },
+  "oracle": {
+    "allowed_actions": ["rollback_service"],
+    "expected_postcondition": {"health": "healthy", "version": "v1"},
+    "forbidden_actions": ["restart_service"],
+    "required_evidence": ["error spike follows v2 deployment", "v2 regression appears in logs"],
+    "root_cause": "bad_deployment"
+  },
+  "scenario_id": "bad_deployment"
+}

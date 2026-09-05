@@ -1,0 +1,1 @@
+"""Incident Guard application package."""

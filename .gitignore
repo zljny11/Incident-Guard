@@ -1,0 +1,7 @@
+.venv/
+.env.deepseek
+*.egg-info/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.DS_Store

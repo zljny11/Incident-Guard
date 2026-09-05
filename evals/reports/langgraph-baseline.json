@@ -1,0 +1,46 @@
+{
+  "approved_run": {
+    "approved": true,
+    "baseline": "langgraph",
+    "checkpoint_count": 8,
+    "graph": {
+      "conditional_routes": 1,
+      "explicit_state_fields": 8,
+      "nodes": 6
+    },
+    "interrupt_count": 1,
+    "mutation_count": 1,
+    "mutations_before_approval": 0,
+    "recovery_verified": true,
+    "report": {
+      "recovery_verified": true,
+      "resolution": "rollback_service",
+      "root_cause": "bad_deployment"
+    },
+    "root_cause": "bad_deployment",
+    "scenario_id": "bad_deployment",
+    "tool_approval_count": 1
+  },
+  "rejected_run": {
+    "approved": false,
+    "baseline": "langgraph",
+    "checkpoint_count": 6,
+    "graph": {
+      "conditional_routes": 1,
+      "explicit_state_fields": 8,
+      "nodes": 6
+    },
+    "interrupt_count": 1,
+    "mutation_count": 0,
+    "mutations_before_approval": 0,
+    "recovery_verified": false,
+    "report": {
+      "recovery_verified": false,
+      "resolution": "operator_rejected",
+      "root_cause": "bad_deployment"
+    },
+    "root_cause": "bad_deployment",
+    "scenario_id": "bad_deployment",
+    "tool_approval_count": 0
+  }
+}
