@@ -13,8 +13,6 @@ The project focuses on two goals:
 - **Practical incident response:** reproducible investigation, controlled remediation, and post-action verification.
 - **Agent-runtime engineering:** first-principles implementations of the agent loop, turns and steps, tool execution, context management, event sourcing, streaming, steering, cancellation, and recovery.
 
-All planned work from Cycle 0 through Cycle 6 is complete. The current implementation includes a durable runtime, human approval, MCP tools that operate a real Docker lab, a lightweight Web Console, evaluation reports, and **206 passing automated tests**.
-
 ## English Contents
 
 - [Why Incident Guard](#why-incident-guard)
@@ -318,8 +316,6 @@ Incident Guard 是一个面向容器化服务故障的单 Agent Harness。它接
 
 - **实际用途**：完成可复现的故障调查、受控处置和恢复验证。
 - **工程学习**：理解并实现 Agent Loop、Turn/Step、Tool Pipeline、Context、Event Store、Streaming、Steering、Cancellation 和 Recovery 等 Harness 核心机制。
-
-> README 路线的 Cycle 0～6 已全部完成：Context Engine、MCP、Docker Lab、真实模型评估、LangGraph 对照、Web Console、真实截图和简历材料均已有可复现验收证据；DeepSeek 经持久化 Runtime、人工审批和 MCP 操作真实 Docker 的链路也已验收，最终全量回归为 206 passed。
 
 ## 快速导航
 
