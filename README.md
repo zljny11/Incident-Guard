@@ -1,4 +1,314 @@
+<a id="english"></a>
+
 # Incident Guard
+
+> Event-Driven Agent Harness for Auditable Incident Investigation and Recovery
+
+[English](#english) | [中文](#chinese)
+
+Incident Guard is a single-agent runtime for investigating and recovering from failures in containerized services. Given an alert, it runs a structured ReAct loop to inspect health endpoints, metrics, logs, deployment history, and runbooks. Mutating actions require explicit human approval, and the incident cannot be closed until recovery has been verified.
+
+The project focuses on two goals:
+
+- **Practical incident response:** reproducible investigation, controlled remediation, and post-action verification.
+- **Agent-runtime engineering:** first-principles implementations of the agent loop, turns and steps, tool execution, context management, event sourcing, streaming, steering, cancellation, and recovery.
+
+All planned work from Cycle 0 through Cycle 6 is complete. The current implementation includes a durable runtime, human approval, MCP tools that operate a real Docker lab, a lightweight Web Console, evaluation reports, and **206 passing automated tests**.
+
+## English Contents
+
+- [Why Incident Guard](#why-incident-guard)
+- [How It Works](#how-it-works)
+- [Core Capabilities](#core-capabilities)
+- [Quick Start](#quick-start)
+- [Run the End-to-End Demo](#run-the-end-to-end-demo)
+- [Incident Lab](#incident-lab)
+- [Safety and Recovery Model](#safety-and-recovery-model)
+- [Evaluation Results](#evaluation-results)
+- [Web Console](#web-console)
+- [Project Status and Scope](#project-status-and-scope)
+- [Chinese Documentation](#chinese)
+
+## Why Incident Guard
+
+Most agent demos stop at:
+
+```text
+prompt -> model -> text
+```
+
+Real incident response requires a controlled execution loop:
+
+```text
+Alert
+-> collect observations
+-> update hypothesis
+-> propose remediation
+-> request approval
+-> execute action
+-> verify recovery
+-> produce an auditable report
+```
+
+Incident Guard is not a general coding agent. It behaves more like an on-call engineer constrained by operational policy: every tool call is validated, side effects are approval-gated, durable events record what happened, and a deterministic Goal Gate rejects premature completion when evidence or recovery checks are missing.
+
+## How It Works
+
+```text
+Alert / Operator
+        |
+        v
+CLI or Web Console
+        |
+        v
+Event-Driven Agent Runtime
+Run -> Turn -> Step -> Model -> Tools -> Observation
+        |                              |
+        v                              v
+Context Engine                  Tool Pipeline
+budget and trimming             schema and policy
+evidence pinning                approval and scheduling
+        |                              |
+        +---------------+--------------+
+                        v
+           SQLite Append-Only Event Store
+                        |
+                        v
+              Deterministic Goal Gate
+                        |
+                        v
+                 Incident Report
+```
+
+![Incident Guard architecture](docs/assets/architecture.svg)
+
+The lifecycle is explicit:
+
+```text
+CREATED
+-> RUNNING
+-> WAITING_APPROVAL
+-> RUNNING
+-> COMPLETED
+
+RUNNING -> CANCELLING -> CANCELLED
+RUNNING -> FAILED
+RUNNING -> FAILED_UNCERTAIN
+```
+
+`FAILED_UNCERTAIN` means that a mutating tool started but the runtime could not determine whether its side effect completed. Such operations are never retried automatically; an operator must inspect the real service state first.
+
+## Core Capabilities
+
+- **Structured ReAct runtime:** native provider tool calls, multi-step observation feedback, streaming events, and explicit run states.
+- **Execution budgets:** limits for steps, tokens, tool calls, and wall-clock time, with stable failure semantics.
+- **Safety-oriented tool pipeline:** registry lookup, JSON Schema validation, `READ`/`MUTATE` classification, policy evaluation, approval, timeout handling, normalized results, and durable persistence.
+- **Controlled concurrency:** up to four read-only tools execute concurrently; mutation batches remain serial and restart/rollback operations use per-service named lanes.
+- **Durable event runtime:** append-only SQLite events, deterministic projections, cancellation, cross-process resume, and no re-execution of completed tool calls.
+- **Context engine:** evidence pinning, deterministic trimming, token budgeting, atomic tool-call/result retention, and content-addressed storage for large tool outputs.
+- **Goal Gate:** completion requires sufficient evidence, approved mutations, recovery verification, and either a healthy service or a justified escalation.
+- **MCP integration:** eight restricted incident tools exposed through an official MCP Python SDK stdio server.
+- **Observability:** CLI timelines, JSONL traces, evaluation reports, SSE replay, and a lightweight Web Console.
+
+## Quick Start
+
+Requirements:
+
+- Python supported by [pyproject.toml](pyproject.toml)
+- Docker and Docker Compose for the real incident lab
+- An OpenAI-compatible API key only for real-model runs; offline tests do not call a model API
+
+Install the project in editable mode and run the offline demo:
+
+```bash
+python3 -m pip install -e '.[dev]'
+ig --help
+ig version
+ig demo gateway
+```
+
+Run the full test suite:
+
+```bash
+python3 -m pytest
+```
+
+Configure an OpenAI-compatible provider:
+
+```bash
+export IG_PROVIDER=openai
+export IG_OPENAI_API_KEY='your-api-key'
+export IG_OPENAI_BASE_URL='https://api.deepseek.com'
+export IG_OPENAI_MODEL='deepseek-v4-flash'
+export IG_OPENAI_TIMEOUT_SECONDS=60
+```
+
+Local secret files such as `.env.deepseek` must remain untracked; the repository ignores this file by default.
+
+## Run the End-to-End Demo
+
+Reset the Docker lab, inject a bad deployment, and start an investigation:
+
+```bash
+ig lab reset
+ig inject bad_deployment
+source .env.deepseek
+ig agent investigate \
+  --alert examples/alerts/payment-5xx.json \
+  --run-id run-agent-demo
+```
+
+The expected investigation correlates the health failure, 42% error rate, exception logs, and the v2 deployment before proposing a rollback:
+
+```text
+query_service_health -> unhealthy
+query_metrics        -> error_rate=42%
+query_logs           -> exception started at 10:31
+get_deployments      -> v2 deployed at 10:30
+read_runbook         -> rollback deployment regression
+
+WAITING_APPROVAL: rollback payment-service v2 -> v1
+```
+
+Copy the model-generated `call_id`, approve the action, and resume the run from a separate process:
+
+```bash
+ig agent approve run-agent-demo <call_id> --reason "rollback reviewed"
+ig agent resume run-agent-demo
+```
+
+The tool handler is not entered before approval. After the decision is persisted, the new process replays the run from SQLite, invokes the rollback through MCP stdio, and requires the model to call `verify_recovery`. A recorded acceptance run produced 40 durable events, zero pre-approval side effects, and restored both payment and shop services to v1/healthy. See the [end-to-end report](evals/reports/durable-deepseek-docker.md).
+
+## Incident Lab
+
+The local Docker Compose lab models a small dependency chain:
+
+```text
+shop-api -> payment-service -> dependency-service
+```
+
+It provides three reproducible scenarios:
+
+| Scenario | Fault | Expected behavior |
+| --- | --- | --- |
+| `transient_hang` | `payment-service` becomes unresponsive | Diagnose the timeout, request approval, restart only the payment service, and verify the full chain. |
+| `bad_deployment` | Payment v2 produces a deterministic 42% regression | Correlate logs and deployment time, request approval, roll back v2 to v1, and verify recovery. |
+| `dependency_outage` | `dependency-service` is stopped | Identify the downstream failure and escalate; do not restart or roll back payment. |
+
+Available incident tools:
+
+```text
+query_service_health
+query_metrics
+query_logs
+get_recent_deployments
+read_runbook
+restart_service
+rollback_service
+verify_recovery
+```
+
+The agent loop depends only on a common `ToolProvider` interface, so the same schemas and policies work with deterministic fake tools, local functions, or MCP.
+
+## Safety and Recovery Model
+
+The tool pipeline is deliberately ordered:
+
+```text
+resolve
+-> validate schema
+-> classify READ / MUTATE
+-> evaluate policy
+-> request approval when required
+-> schedule
+-> execute with timeout
+-> normalize result
+-> run post-tool hooks
+-> persist durable event
+```
+
+Key invariants include:
+
+- `restart_service` and `rollback_service` always require human approval.
+- An unapproved mutation fails closed and never reaches its handler.
+- A completed tool call is not executed again after replay or process restart.
+- A mutation with an unknown outcome becomes `FAILED_UNCERTAIN` and is not automatically retried.
+- Tool results are persisted before the next model step.
+- The evaluator-only oracle never enters the model context.
+- The Goal Gate rejects text-only claims of success without recovery evidence.
+
+Durable events are the source of truth for replay and audit, while live events are used only for streaming UI updates:
+
+```text
+Durable: run.started, step.started, tool.requested,
+         approval.requested, approval.decided, tool.completed,
+         run.completed, run.failed, run.cancelled
+
+Live:    assistant.delta, tool.progress, runtime.status
+```
+
+## Evaluation Results
+
+The deterministic scenario matrix passes at 100%, including injected runtime failures. Real-model evaluation used DeepSeek V4 Flash for five runs per scenario.
+
+| Metric | Result |
+| --- | ---: |
+| Scenarios / repetitions | 3 / 5 each |
+| Passed runs | 15/15 (100%) |
+| Root-cause accuracy | 100% |
+| Required evidence coverage | 100% |
+| Resolution / recovery verification | 100% / 100% |
+| Unsafe actions | 0 |
+| Tokens / tool calls | 129,878 / 166 |
+| Conservative estimated cost | $0.06592 |
+
+The repeated real-model evaluation used deterministic in-memory incident tools. A separate acceptance run exercised the complete DeepSeek -> durable runtime -> human approval -> MCP -> Docker path. These controlled experiments demonstrate runtime behavior; they are not production-SLA claims.
+
+Reports:
+
+- [Real-model evaluation](evals/reports/real-model-eval.md)
+- [Durable DeepSeek + Docker acceptance run](evals/reports/durable-deepseek-docker.md)
+- [LangGraph baseline](evals/reports/langgraph-baseline.md)
+- [Native runtime vs. LangGraph ADR](docs/adr/0001-native-runtime-vs-langgraph.md)
+
+## Web Console
+
+Start the local console:
+
+```bash
+ig console --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000/runs` for run status and timelines, or `http://127.0.0.1:8000/evals` for evaluation reports. Approval actions reuse the same application service as the CLI; the Web layer does not contain a second runtime implementation.
+
+![Completed run list](docs/assets/runs.png)
+
+![Durable run timeline](docs/assets/run-timeline.png)
+
+![Evaluation evidence](docs/assets/evaluations.png)
+
+## Project Status and Scope
+
+Cycles 0 through 6 are complete, and the documented CLI, Docker, MCP, SSE, approval, recovery, and evaluation paths are covered by 206 automated tests.
+
+The following are intentionally out of scope:
+
+- A Claude Code clone or general-purpose coding agent
+- Multi-agent orchestration or a generic graph engine
+- Arbitrary shell access or unrestricted host management
+- A general MCP gateway or full plugin lifecycle
+- Production Kubernetes, Prometheus, or Loki integration
+- Distributed scheduling or general exactly-once execution
+
+For the detailed design rationale, task-by-task implementation record, test evidence, and resume material, continue with the complete Chinese documentation below.
+
+---
+
+<a id="chinese"></a>
+
+# Incident Guard 中文文档
+
+[English](#english) | [中文](#chinese)
 
 > Event-Driven Agent Harness for Auditable Incident Investigation and Recovery
 
@@ -1356,3 +1666,4 @@ no credential, evaluator-only oracle, or unverified capability is published
 扩展新故障场景、增加真实运行次数，或接入 README 明确排除的生产基础设施。
 
 [⬆️ 回到目录](#快速导航)
+
